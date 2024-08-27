@@ -22,14 +22,14 @@
 			"sinks": [
 				{
 					"dataset": {
-						"referenceName": "DS_SQL_cleanCustomer",
+						"referenceName": "DS_BLOB_cleanCustomer",
 						"type": "DatasetReference"
 					},
 					"name": "store"
 				},
 				{
 					"dataset": {
-						"referenceName": "DS_SQL_cleanOrder",
+						"referenceName": "DS_BLOB_cleanOrder",
 						"type": "DatasetReference"
 					},
 					"name": "storeOrders"
@@ -128,24 +128,33 @@
 				"     skipDuplicateMapOutputs: true) ~> selectWithoutRanks",
 				"selectWithoutRank sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
-				"     deletable:false,",
-				"     insertable:true,",
-				"     updateable:false,",
-				"     upsertable:false,",
-				"     format: 'table',",
+				"     input(",
+				"          CustomerID as string,",
+				"          FirstName as string,",
+				"          LastName as string,",
+				"          Email as string,",
+				"          PhoneNumber as string,",
+				"          Address as string,",
+				"          City as string,",
+				"          State as string,",
+				"          ZipCode as string,",
+				"          Country as string",
+				"     ),",
 				"     skipDuplicateMapInputs: true,",
-				"     skipDuplicateMapOutputs: true,",
-				"     errorHandlingOption: 'stopOnFirstError') ~> store",
+				"     skipDuplicateMapOutputs: true) ~> store",
 				"selectWithoutRanks sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
-				"     deletable:false,",
-				"     insertable:true,",
-				"     updateable:false,",
-				"     upsertable:false,",
-				"     format: 'table',",
+				"     input(",
+				"          OrderID as string,",
+				"          ProductID as string,",
+				"          ProductName as string,",
+				"          Quantity as string,",
+				"          OrderTimestamp as string,",
+				"          Price as string,",
+				"          CustomerID as string",
+				"     ),",
 				"     skipDuplicateMapInputs: true,",
-				"     skipDuplicateMapOutputs: true,",
-				"     errorHandlingOption: 'stopOnFirstError') ~> storeOrders"
+				"     skipDuplicateMapOutputs: true) ~> storeOrders"
 			]
 		}
 	}
