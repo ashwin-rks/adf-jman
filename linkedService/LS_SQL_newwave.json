@@ -1,0 +1,17 @@
+{
+	"name": "LS_SQL_newwave",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "AzureSqlDatabase",
+		"typeProperties": {
+			"server": "sql-server-newwave.database.windows.net",
+			"database": "sqldb-newwave",
+			"encrypt": "mandatory",
+			"trustServerCertificate": true,
+			"authenticationType": "SQL",
+			"userName": "ashwin",
+			"encryptedCredential": "ew0KICAiVmVyc2lvbiI6ICIyMDE3LTExLTMwIiwNCiAgIlByb3RlY3Rpb25Nb2RlIjogIktleSIsDQogICJTZWNyZXRDb250ZW50VHlwZSI6ICJQbGFpbnRleHQiLA0KICAiQ3JlZGVudGlhbElkIjogIkRBVEFGQUNUT1JZQEIyRDc1Mjk4LUFEOTctNEQ1Mi04MzdBLTM2Mzk3N0EzMDNGM18zMzFjYzE0YS02OWYyLTQ2NzItODg5OC01ZjQ2MDVjZmVkOWIiDQp9"
+		}
+	}
+}
