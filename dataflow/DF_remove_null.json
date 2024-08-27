@@ -1,0 +1,132 @@
+{
+	"name": "DF_remove_null",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "DS_SQL_customer",
+						"type": "DatasetReference"
+					},
+					"name": "customersTable"
+				},
+				{
+					"dataset": {
+						"referenceName": "DS_SQL_order",
+						"type": "DatasetReference"
+					},
+					"name": "ordersTable"
+				}
+			],
+			"sinks": [
+				{
+					"name": "store"
+				},
+				{
+					"name": "storeOrders"
+				}
+			],
+			"transformations": [
+				{
+					"name": "removeNullCustomers"
+				},
+				{
+					"name": "rankCustomerIDs"
+				},
+				{
+					"name": "removeDuplicatesCustomers"
+				},
+				{
+					"name": "selectWithoutRank"
+				},
+				{
+					"name": "removeNullOrders"
+				},
+				{
+					"name": "rankOrderIDs"
+				},
+				{
+					"name": "removeDuplicateOrders"
+				},
+				{
+					"name": "selectWithoutRanks"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          CustomerID as string,",
+				"          FirstName as string,",
+				"          LastName as string,",
+				"          Email as string,",
+				"          PhoneNumber as string,",
+				"          Address as string,",
+				"          City as string,",
+				"          State as string,",
+				"          ZipCode as string,",
+				"          Country as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> customersTable",
+				"source(output(",
+				"          OrderID as string,",
+				"          ProductID as string,",
+				"          ProductName as string,",
+				"          Quantity as integer,",
+				"          OrderTimestamp as timestamp,",
+				"          Price as double,",
+				"          CustomerID as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> ordersTable",
+				"customersTable filter(!(isNull(ZipCode) || ZipCode == 'NULL' || isNull(Country) || Country == 'NULL')) ~> removeNullCustomers",
+				"removeNullCustomers window(over(CustomerID),",
+				"     asc(CustomerID, true),",
+				"     RANK = rowNumber()) ~> rankCustomerIDs",
+				"rankCustomerIDs filter(RANK == 1) ~> removeDuplicatesCustomers",
+				"removeDuplicatesCustomers select(mapColumn(",
+				"          CustomerID,",
+				"          FirstName,",
+				"          LastName,",
+				"          Email,",
+				"          PhoneNumber,",
+				"          Address,",
+				"          City,",
+				"          State,",
+				"          ZipCode,",
+				"          Country",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> selectWithoutRank",
+				"ordersTable filter(!isNull(OrderTimestamp)) ~> removeNullOrders",
+				"removeNullOrders window(over(OrderID),",
+				"     asc(OrderID, true),",
+				"     RANK = rowNumber()) ~> rankOrderIDs",
+				"rankOrderIDs filter(RANK == 1 ) ~> removeDuplicateOrders",
+				"removeDuplicateOrders select(mapColumn(",
+				"          OrderID,",
+				"          ProductID,",
+				"          ProductName,",
+				"          Quantity,",
+				"          OrderTimestamp,",
+				"          Price,",
+				"          CustomerID",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> selectWithoutRanks",
+				"selectWithoutRank sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> store",
+				"selectWithoutRanks sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> storeOrders"
+			]
+		}
+	}
+}
