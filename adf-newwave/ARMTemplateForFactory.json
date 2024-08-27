@@ -621,14 +621,14 @@
 					"sinks": [
 						{
 							"dataset": {
-								"referenceName": "DS_BLOB_cleanCustomer",
+								"referenceName": "DS_SQL_cleanCustomer",
 								"type": "DatasetReference"
 							},
-							"name": "store"
+							"name": "storeCustomers"
 						},
 						{
 							"dataset": {
-								"referenceName": "DS_BLOB_cleanOrder",
+								"referenceName": "DS_SQL_cleanOrder",
 								"type": "DatasetReference"
 							},
 							"name": "storeOrders"
@@ -727,41 +727,32 @@
 						"     skipDuplicateMapOutputs: true) ~> selectWithoutRanks",
 						"selectWithoutRank sink(allowSchemaDrift: true,",
 						"     validateSchema: false,",
-						"     input(",
-						"          CustomerID as string,",
-						"          FirstName as string,",
-						"          LastName as string,",
-						"          Email as string,",
-						"          PhoneNumber as string,",
-						"          Address as string,",
-						"          City as string,",
-						"          State as string,",
-						"          ZipCode as string,",
-						"          Country as string",
-						"     ),",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:false,",
+						"     format: 'table',",
 						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> store",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError') ~> storeCustomers",
 						"selectWithoutRanks sink(allowSchemaDrift: true,",
 						"     validateSchema: false,",
-						"     input(",
-						"          OrderID as string,",
-						"          ProductID as string,",
-						"          ProductName as string,",
-						"          Quantity as string,",
-						"          OrderTimestamp as string,",
-						"          Price as string,",
-						"          CustomerID as string",
-						"     ),",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:false,",
+						"     format: 'table',",
 						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> storeOrders"
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError') ~> storeOrders"
 					]
 				}
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/datasets/DS_SQL_customer')]",
 				"[concat(variables('factoryId'), '/datasets/DS_SQL_order')]",
-				"[concat(variables('factoryId'), '/datasets/DS_BLOB_cleanCustomer')]",
-				"[concat(variables('factoryId'), '/datasets/DS_BLOB_cleanOrder')]"
+				"[concat(variables('factoryId'), '/datasets/DS_SQL_cleanCustomer')]",
+				"[concat(variables('factoryId'), '/datasets/DS_SQL_cleanOrder')]"
 			]
 		},
 		{
@@ -832,7 +823,7 @@
 								"datasetParameters": {
 									"customersTable": {},
 									"ordersTable": {},
-									"store": {},
+									"storeCustomers": {},
 									"storeOrders": {}
 								},
 								"linkedServiceParameters": {}
@@ -846,71 +837,10 @@
 						}
 					},
 					{
-						"name": "sql store customer",
-						"type": "Copy",
-						"dependsOn": [
-							{
-								"activity": "Clean Data",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "DelimitedTextSource",
-								"storeSettings": {
-									"type": "AzureBlobStorageReadSettings",
-									"recursive": true,
-									"enablePartitionDiscovery": false
-								},
-								"formatSettings": {
-									"type": "DelimitedTextReadSettings"
-								}
-							},
-							"sink": {
-								"type": "AzureSqlSink",
-								"writeBehavior": "insert",
-								"sqlWriterUseTableLock": false,
-								"tableOption": "autoCreate",
-								"disableMetricsCollection": false
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "DS_BLOB_cleanCustomer",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "DS_SQL_cleanCustomer",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						]
-					},
-					{
 						"name": "sql store order",
 						"type": "Copy",
+						"state": "Inactive",
+						"onInactiveMarkAs": "Succeeded",
 						"dependsOn": [
 							{
 								"activity": "Clean Data",
@@ -979,8 +909,6 @@
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/dataflows/DF_clean')]",
-				"[concat(variables('factoryId'), '/datasets/DS_BLOB_cleanCustomer')]",
-				"[concat(variables('factoryId'), '/datasets/DS_SQL_cleanCustomer')]",
 				"[concat(variables('factoryId'), '/datasets/DS_BLOB_cleanOrder')]",
 				"[concat(variables('factoryId'), '/datasets/DS_SQL_cleanOrder')]"
 			]
@@ -1000,7 +928,7 @@
 					"location": {
 						"type": "AzureBlobStorageLocation",
 						"fileName": "customers_clean.csv",
-						"folderPath": "Customer",
+						"folderPath": "Customers",
 						"container": "container-output"
 					},
 					"columnDelimiter": ",",
