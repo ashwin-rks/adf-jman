@@ -1,0 +1,24 @@
+{
+	"name": "DS_consolidated_order_details",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_BLOB_input",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"fileName": "orders.csv",
+				"folderPath": "Orders",
+				"container": "container-output"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": []
+	}
+}
