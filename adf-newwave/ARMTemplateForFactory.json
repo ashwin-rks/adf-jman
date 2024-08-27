@@ -586,6 +586,256 @@
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/pipelines/PL_consolidate_details')]"
 			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DF_clean')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_SQL_customer",
+								"type": "DatasetReference"
+							},
+							"name": "customersTable"
+						},
+						{
+							"dataset": {
+								"referenceName": "DS_SQL_order",
+								"type": "DatasetReference"
+							},
+							"name": "ordersTable"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "DS_SQL_cleanCustomer",
+								"type": "DatasetReference"
+							},
+							"name": "store"
+						},
+						{
+							"dataset": {
+								"referenceName": "DS_SQL_cleanOrder",
+								"type": "DatasetReference"
+							},
+							"name": "storeOrders"
+						}
+					],
+					"transformations": [
+						{
+							"name": "removeNullCustomers"
+						},
+						{
+							"name": "rankCustomerIDs"
+						},
+						{
+							"name": "removeDuplicatesCustomers"
+						},
+						{
+							"name": "selectWithoutRank"
+						},
+						{
+							"name": "removeNullOrders"
+						},
+						{
+							"name": "rankOrderIDs"
+						},
+						{
+							"name": "removeDuplicateOrders"
+						},
+						{
+							"name": "selectWithoutRanks"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          CustomerID as string,",
+						"          FirstName as string,",
+						"          LastName as string,",
+						"          Email as string,",
+						"          PhoneNumber as string,",
+						"          Address as string,",
+						"          City as string,",
+						"          State as string,",
+						"          ZipCode as string,",
+						"          Country as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> customersTable",
+						"source(output(",
+						"          OrderID as string,",
+						"          ProductID as string,",
+						"          ProductName as string,",
+						"          Quantity as integer,",
+						"          OrderTimestamp as timestamp,",
+						"          Price as double,",
+						"          CustomerID as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> ordersTable",
+						"customersTable filter(!(isNull(ZipCode) || ZipCode == 'NULL' || isNull(Country) || Country == 'NULL')) ~> removeNullCustomers",
+						"removeNullCustomers window(over(CustomerID),",
+						"     asc(CustomerID, true),",
+						"     RANK = rowNumber()) ~> rankCustomerIDs",
+						"rankCustomerIDs filter(RANK == 1) ~> removeDuplicatesCustomers",
+						"removeDuplicatesCustomers select(mapColumn(",
+						"          CustomerID,",
+						"          FirstName,",
+						"          LastName,",
+						"          Email,",
+						"          PhoneNumber,",
+						"          Address,",
+						"          City,",
+						"          State,",
+						"          ZipCode,",
+						"          Country",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> selectWithoutRank",
+						"ordersTable filter(!isNull(OrderTimestamp)) ~> removeNullOrders",
+						"removeNullOrders window(over(OrderID),",
+						"     asc(OrderID, true),",
+						"     RANK = rowNumber()) ~> rankOrderIDs",
+						"rankOrderIDs filter(RANK == 1 ) ~> removeDuplicateOrders",
+						"removeDuplicateOrders select(mapColumn(",
+						"          OrderID,",
+						"          ProductID,",
+						"          ProductName,",
+						"          Quantity,",
+						"          OrderTimestamp,",
+						"          Price,",
+						"          CustomerID",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> selectWithoutRanks",
+						"selectWithoutRank sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:false,",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError') ~> store",
+						"selectWithoutRanks sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:false,",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError') ~> storeOrders"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_SQL_customer')]",
+				"[concat(variables('factoryId'), '/datasets/DS_SQL_order')]",
+				"[concat(variables('factoryId'), '/datasets/DS_SQL_cleanCustomer')]",
+				"[concat(variables('factoryId'), '/datasets/DS_SQL_cleanOrder')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_SQL_cleanCustomer')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_SQL_newwave",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": "staging",
+					"table": "customer"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_SQL_newwave')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_SQL_cleanOrder')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_SQL_newwave",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": "staging",
+					"table": "order"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_SQL_newwave')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/PL_stage_data')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Clean and Stage Data",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "DF_clean",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"customersTable": {},
+									"ordersTable": {},
+									"store": {},
+									"storeOrders": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/DF_clean')]"
+			]
 		}
 	]
 }
