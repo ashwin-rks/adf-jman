@@ -1,0 +1,16 @@
+{
+	"name": "DS_SQL_cleanOrder",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_SQL_newwave",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": "staging",
+			"table": "order"
+		}
+	}
+}

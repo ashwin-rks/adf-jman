@@ -1,5 +1,5 @@
 {
-	"name": "DF_remove_null",
+	"name": "DF_clean",
 	"properties": {
 		"type": "MappingDataFlow",
 		"typeProperties": {
@@ -21,9 +21,17 @@
 			],
 			"sinks": [
 				{
+					"dataset": {
+						"referenceName": "DS_SQL_cleanCustomer",
+						"type": "DatasetReference"
+					},
 					"name": "store"
 				},
 				{
+					"dataset": {
+						"referenceName": "DS_SQL_cleanOrder",
+						"type": "DatasetReference"
+					},
 					"name": "storeOrders"
 				}
 			],
@@ -120,12 +128,24 @@
 				"     skipDuplicateMapOutputs: true) ~> selectWithoutRanks",
 				"selectWithoutRank sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
 				"     skipDuplicateMapInputs: true,",
-				"     skipDuplicateMapOutputs: true) ~> store",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError') ~> store",
 				"selectWithoutRanks sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
 				"     skipDuplicateMapInputs: true,",
-				"     skipDuplicateMapOutputs: true) ~> storeOrders"
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError') ~> storeOrders"
 			]
 		}
 	}
