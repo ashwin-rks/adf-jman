@@ -1,0 +1,16 @@
+{
+	"name": "DS_SQL_merged_orders",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_SQL_newwave",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": "prep",
+			"table": "merged_orders"
+		}
+	}
+}
