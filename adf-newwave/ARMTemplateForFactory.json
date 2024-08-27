@@ -1102,7 +1102,7 @@
 						"container": "container-input"
 					},
 					"columnDelimiter": ",",
-					"escapeChar": "\\",
+					"escapeChar": "\"",
 					"firstRowAsHeader": true,
 					"quoteChar": "\""
 				},
