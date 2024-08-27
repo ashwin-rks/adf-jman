@@ -22,14 +22,14 @@
 			"sinks": [
 				{
 					"dataset": {
-						"referenceName": "DS_BLOB_cleanCustomer",
+						"referenceName": "DS_SQL_cleanCustomer",
 						"type": "DatasetReference"
 					},
 					"name": "storeCustomers"
 				},
 				{
 					"dataset": {
-						"referenceName": "DS_BLOB_cleanOrder",
+						"referenceName": "DS_SQL_cleanOrder",
 						"type": "DatasetReference"
 					},
 					"name": "storeOrders"
@@ -128,33 +128,24 @@
 				"     skipDuplicateMapOutputs: true) ~> selectWithoutRanks",
 				"selectWithoutRank sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
-				"     input(",
-				"          CustomerID as string,",
-				"          FirstName as string,",
-				"          LastName as string,",
-				"          Email as string,",
-				"          PhoneNumber as string,",
-				"          Address as string,",
-				"          City as string,",
-				"          State as string,",
-				"          ZipCode as string,",
-				"          Country as string",
-				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
 				"     skipDuplicateMapInputs: true,",
-				"     skipDuplicateMapOutputs: true) ~> storeCustomers",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError') ~> storeCustomers",
 				"selectWithoutRanks sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
-				"     input(",
-				"          OrderID as string,",
-				"          ProductID as string,",
-				"          ProductName as string,",
-				"          Quantity as string,",
-				"          OrderTimestamp as string,",
-				"          Price as string,",
-				"          CustomerID as string",
-				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
 				"     skipDuplicateMapInputs: true,",
-				"     skipDuplicateMapOutputs: true) ~> storeOrders"
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError') ~> storeOrders"
 			]
 		}
 	}
