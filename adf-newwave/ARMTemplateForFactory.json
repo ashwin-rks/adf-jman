@@ -578,6 +578,13 @@
 							"type": "PipelineReference"
 						},
 						"parameters": {}
+					},
+					{
+						"pipelineReference": {
+							"referenceName": "PL_join_orders_customers",
+							"type": "PipelineReference"
+						},
+						"parameters": {}
 					}
 				],
 				"type": "ScheduleTrigger",
@@ -592,7 +599,8 @@
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/pipelines/PL_consolidate_details')]",
-				"[concat(variables('factoryId'), '/pipelines/PL_stage_data')]"
+				"[concat(variables('factoryId'), '/pipelines/PL_stage_data')]",
+				"[concat(variables('factoryId'), '/pipelines/PL_join_orders_customers')]"
 			]
 		},
 		{
@@ -835,20 +843,27 @@
 							},
 							"traceLevel": "Fine"
 						}
-					},
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/DF_clean')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/PL_join_orders_customers')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
 					{
-						"name": "sql store order",
-						"type": "Copy",
-						"state": "Inactive",
-						"onInactiveMarkAs": "Succeeded",
-						"dependsOn": [
-							{
-								"activity": "Clean Data",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
+						"name": "JOIN orders and cutomers",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
 						"policy": {
 							"timeout": "0.12:00:00",
 							"retry": 0,
@@ -858,48 +873,23 @@
 						},
 						"userProperties": [],
 						"typeProperties": {
-							"source": {
-								"type": "DelimitedTextSource",
-								"storeSettings": {
-									"type": "AzureBlobStorageReadSettings",
-									"recursive": true,
-									"enablePartitionDiscovery": false
-								},
-								"formatSettings": {
-									"type": "DelimitedTextReadSettings"
+							"dataflow": {
+								"referenceName": "DF_join",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"OrderTable": {},
+									"CustomerTable": {},
+									"storeSQL": {}
 								}
 							},
-							"sink": {
-								"type": "AzureSqlSink",
-								"writeBehavior": "insert",
-								"sqlWriterUseTableLock": false,
-								"tableOption": "autoCreate",
-								"disableMetricsCollection": false
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
 							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "DS_BLOB_cleanOrder",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "DS_SQL_cleanOrder",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						]
+							"traceLevel": "Fine"
+						}
 					}
 				],
 				"policy": {
@@ -908,137 +898,119 @@
 				"annotations": []
 			},
 			"dependsOn": [
-				"[concat(variables('factoryId'), '/dataflows/DF_clean')]",
-				"[concat(variables('factoryId'), '/datasets/DS_BLOB_cleanOrder')]",
-				"[concat(variables('factoryId'), '/datasets/DS_SQL_cleanOrder')]"
+				"[concat(variables('factoryId'), '/dataflows/DF_join')]"
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/DS_BLOB_cleanCustomer')]",
+			"name": "[concat(parameters('factoryName'), '/DF_join')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_SQL_cleanOrder",
+								"type": "DatasetReference"
+							},
+							"name": "OrderTable"
+						},
+						{
+							"dataset": {
+								"referenceName": "DS_SQL_cleanCustomer",
+								"type": "DatasetReference"
+							},
+							"name": "CustomerTable"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "DS_SQL_merged_orders",
+								"type": "DatasetReference"
+							},
+							"name": "storeSQL"
+						}
+					],
+					"transformations": [
+						{
+							"name": "JoinOnCustomerID"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          OrderID as string,",
+						"          ProductID as string,",
+						"          ProductName as string,",
+						"          Quantity as integer,",
+						"          OrderTimestamp as timestamp,",
+						"          Price as double,",
+						"          CustomerID as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> OrderTable",
+						"source(output(",
+						"          CustomerID as string,",
+						"          FirstName as string,",
+						"          LastName as string,",
+						"          Email as string,",
+						"          PhoneNumber as string,",
+						"          Address as string,",
+						"          City as string,",
+						"          State as string,",
+						"          ZipCode as string,",
+						"          Country as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> CustomerTable",
+						"OrderTable, CustomerTable join(OrderTable@CustomerID == CustomerTable@CustomerID,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> JoinOnCustomerID",
+						"JoinOnCustomerID sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:false,",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError') ~> storeSQL"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_SQL_cleanOrder')]",
+				"[concat(variables('factoryId'), '/datasets/DS_SQL_cleanCustomer')]",
+				"[concat(variables('factoryId'), '/datasets/DS_SQL_merged_orders')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_SQL_merged_orders')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
 			"properties": {
 				"linkedServiceName": {
-					"referenceName": "LS_BLOB_input",
+					"referenceName": "LS_SQL_newwave",
 					"type": "LinkedServiceReference"
 				},
 				"annotations": [],
-				"type": "DelimitedText",
+				"type": "AzureSqlTable",
+				"schema": [],
 				"typeProperties": {
-					"location": {
-						"type": "AzureBlobStorageLocation",
-						"fileName": "customers_clean.csv",
-						"folderPath": "Customers",
-						"container": "container-output"
-					},
-					"columnDelimiter": ",",
-					"escapeChar": "\\",
-					"firstRowAsHeader": true,
-					"quoteChar": "\""
-				},
-				"schema": [
-					{
-						"name": "CustomerID",
-						"type": "String"
-					},
-					{
-						"name": "FirstName",
-						"type": "String"
-					},
-					{
-						"name": "LastName",
-						"type": "String"
-					},
-					{
-						"name": "Email",
-						"type": "String"
-					},
-					{
-						"name": "PhoneNumber",
-						"type": "String"
-					},
-					{
-						"name": "Address",
-						"type": "String"
-					},
-					{
-						"name": "City",
-						"type": "String"
-					},
-					{
-						"name": "State",
-						"type": "String"
-					},
-					{
-						"name": "ZipCode",
-						"type": "String"
-					},
-					{
-						"name": "Country",
-						"type": "String"
-					}
-				]
+					"schema": "prep",
+					"table": "merged_orders"
+				}
 			},
 			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/LS_BLOB_input')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/DS_BLOB_cleanOrder')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "LS_BLOB_input",
-					"type": "LinkedServiceReference"
-				},
-				"annotations": [],
-				"type": "DelimitedText",
-				"typeProperties": {
-					"location": {
-						"type": "AzureBlobStorageLocation",
-						"fileName": "orders_clean.csv",
-						"folderPath": "Orders",
-						"container": "container-output"
-					},
-					"columnDelimiter": ",",
-					"escapeChar": "\\",
-					"firstRowAsHeader": true,
-					"quoteChar": "\""
-				},
-				"schema": [
-					{
-						"name": "OrderID",
-						"type": "String"
-					},
-					{
-						"name": "ProductID",
-						"type": "String"
-					},
-					{
-						"name": "ProductName",
-						"type": "String"
-					},
-					{
-						"name": "Quantity",
-						"type": "String"
-					},
-					{
-						"name": "OrderTimestamp",
-						"type": "String"
-					},
-					{
-						"name": "Price",
-						"type": "String"
-					},
-					{
-						"name": "CustomerID",
-						"type": "String"
-					}
-				]
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/LS_BLOB_input')]"
+				"[concat(variables('factoryId'), '/linkedServices/LS_SQL_newwave')]"
 			]
 		}
 	]
