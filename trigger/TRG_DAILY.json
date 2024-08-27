@@ -9,6 +9,12 @@
 					"referenceName": "PL_consolidate_details",
 					"type": "PipelineReference"
 				}
+			},
+			{
+				"pipelineReference": {
+					"referenceName": "PL_stage_data",
+					"type": "PipelineReference"
+				}
 			}
 		],
 		"type": "ScheduleTrigger",
