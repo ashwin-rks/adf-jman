@@ -11,7 +11,7 @@
 			"location": {
 				"type": "AzureBlobStorageLocation",
 				"fileName": "customers_clean.csv",
-				"folderPath": "Customer",
+				"folderPath": "Customers",
 				"container": "container-output"
 			},
 			"columnDelimiter": ",",
